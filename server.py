@@ -12,6 +12,8 @@ from typing import List, Dict
 import threading
 from fastapi.responses import StreamingResponse
 import json
+import sqlite3
+import aiosqlite
 
 # Configure logging
 logging.basicConfig(
@@ -23,8 +25,24 @@ logger = logging.getLogger('server')
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# Store emails in memory
-emails: List[Dict] = []
+# Database setup
+def init_db():
+    conn = sqlite3.connect('emails.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS emails
+        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+         subject TEXT,
+         from_address TEXT,
+         to_address TEXT,
+         date TEXT,
+         content TEXT)
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialize database
+init_db()
 
 email_update_event = asyncio.Event()
 
@@ -36,7 +54,7 @@ class CustomSMTPHandler:
         # Extract email details
         subject = email_msg.get('subject', 'No Subject')
         from_address = envelope.mail_from
-        to_address = envelope.rcpt_tos
+        to_address = ', '.join(envelope.rcpt_tos)
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Get email body
@@ -48,20 +66,17 @@ class CustomSMTPHandler:
         else:
             content = email_msg.get_payload(decode=True).decode()
         
-        # Store email
-        email_data = {
-            "subject": subject,
-            "from_address": from_address,
-            "to_address": to_address[0],
-            "content": content,
-            "date": date
-        }
-        emails.insert(0, email_data)
+        # Store email in SQLite
+        async with aiosqlite.connect('emails.db') as db:
+            await db.execute(
+                'INSERT INTO emails (subject, from_address, to_address, date, content) VALUES (?, ?, ?, ?, ?)',
+                (subject, from_address, to_address, date, content)
+            )
+            await db.commit()
         
-        # Trigger event for SSE
+        # Notify clients about new email
         email_update_event.set()
         email_update_event.clear()
-        
         logger.info(f'Received email from {from_address} with subject: {subject}')
         return '250 Message accepted for delivery'
 
@@ -72,9 +87,24 @@ async def email_event_generator():
 
 @app.get("/")
 async def home(request: Request):
+    # Fetch emails from database
+    async with aiosqlite.connect('emails.db') as db:
+        async with db.execute('SELECT * FROM emails ORDER BY date DESC') as cursor:
+            emails = await cursor.fetchall()
+            email_list = [
+                {
+                    'subject': email[1],
+                    'from_address': email[2],
+                    'to_address': email[3],
+                    'date': email[4],
+                    'content': email[5]
+                }
+                for email in emails
+            ]
+    
     return templates.TemplateResponse(
         "emails.html",
-        {"request": request, "emails": emails}
+        {"request": request, "emails": email_list}
     )
 
 @app.get('/stream')
@@ -89,7 +119,7 @@ def run_fastapi():
 
 async def run_smtp():
     handler = CustomSMTPHandler()
-    controller = Controller(handler, hostname='127.0.0.1', port=1025)
+    controller = Controller(handler, hostname='127.0.0.1', port=1025, ready_timeout=60.0)
     controller.start()
     logger.info("SMTP Server started on 127.0.0.1:1025")
     try:

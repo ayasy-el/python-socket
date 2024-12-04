@@ -32,7 +32,7 @@ async def tcp_client(sender, receiver, subject, message):
     writer.write(message.encode())
     await writer.drain()
 
-    response = await reader.read(100)
+    response = await reader.read(4096)
     logger.info(f'<< {response.decode()}')
 
     logger.info('Closing the connection')

@@ -12,8 +12,9 @@ logging.basicConfig(
 logger = logging.getLogger('forwarder')
 
 async def handle_client(reader, writer):
-    data = await reader.read(100)
+    data = await reader.read(4096)
     message = data.decode()
+    logger.info(f">> {writer.get_extra_info('peername')}: {message}")
 
     try:
         parsed_data = json.loads(message)
@@ -21,9 +22,6 @@ async def handle_client(reader, writer):
         receiver = parsed_data['receiver']
         subject = parsed_data['subject']
         message_content = parsed_data['message']
-
-        addr = writer.get_extra_info('peername')
-        logger.info(f">> {addr}: {message}")
 
         try:
             # Create MIMEText message
