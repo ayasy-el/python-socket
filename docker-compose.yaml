@@ -1,0 +1,49 @@
+version: "3.9"
+services:
+  alpine1:
+    image: alpine:latest
+    container_name: alpine1
+    ports:
+      - "8010:8010"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.50.1
+      bridge_net: {}
+    tty: true
+    stdin_open: true
+    command: sh
+
+  alpine2:
+    image: alpine:latest
+    container_name: alpine2
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.50.2
+      bridge_net: {}
+    tty: true
+    stdin_open: true
+    command: sh
+
+  alpine3:
+    image: alpine:latest
+    container_name: alpine3
+    ports:
+      - "8000:8000"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.50.3
+      bridge_net: {}
+    tty: true
+    stdin_open: true
+    command: sh
+
+networks:
+  macvlan_net:
+    driver: macvlan
+    ipam:
+      config:
+        - subnet: 192.168.50.0/24
+          gateway: 192.168.50.10
+
+  bridge_net:
+    driver: bridge

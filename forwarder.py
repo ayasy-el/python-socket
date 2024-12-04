@@ -30,7 +30,7 @@ async def handle_client(reader, writer):
             msg['From'] = sender
             msg['To'] = receiver
 
-            with smtplib.SMTP('127.0.0.1', 1025) as smtp:
+            with smtplib.SMTP('192.168.50.3', 25) as smtp:
                 smtp.send_message(msg)
                 logger.info(f"Email: {sender} -> {receiver}, Subject: {subject}")
                 writer.write(b"OK")
@@ -51,7 +51,7 @@ async def handle_client(reader, writer):
         await writer.wait_closed()
 
 async def main():
-    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    server = await asyncio.start_server(handle_client, '0.0.0.0', 8888)
     addr = server.sockets[0].getsockname()
     logger.info(f'Serving on {addr}')
 

@@ -115,13 +115,13 @@ async def stream_emails():
     )
 
 def run_fastapi():
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 async def run_smtp():
     handler = CustomSMTPHandler()
-    controller = Controller(handler, hostname='127.0.0.1', port=1025, ready_timeout=60.0)
+    controller = Controller(handler, hostname='0.0.0.0', port=25, ready_timeout=60.0)
     controller.start()
-    logger.info("SMTP Server started on 127.0.0.1:1025")
+    logger.info("SMTP Server started on 0.0.0.0:25")
     try:
         while True:
             await asyncio.sleep(1)

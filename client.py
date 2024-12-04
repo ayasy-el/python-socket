@@ -18,7 +18,7 @@ def validate_email_address(email):
         return False, str(e)
 
 async def tcp_client(sender, receiver, subject, message):
-    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    reader, writer = await asyncio.open_connection('192.168.50.2', 8888)
 
     data = {
         'sender': sender,

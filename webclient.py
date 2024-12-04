@@ -23,7 +23,7 @@ message_state = {"message": None, "status": None}
 
 async def tcp_client(sender, receiver, subject, message):
     try:
-        reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+        reader, writer = await asyncio.open_connection('192.168.50.2', 8888)
 
         # Format data exactly like client.py
         data = {
@@ -246,4 +246,4 @@ async def send_email(
     return Response(status_code=HTTP_303_SEE_OTHER, headers={"Location": "/"})
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8010)
+    uvicorn.run(app, host="0.0.0.0", port=8010)
